@@ -20,7 +20,7 @@ st.subheader(
 st.sidebar.title("Customization Options")
 
 # workflow/ flowchart 
-mindorflow = st.sidebar.radio("Generate Flowcharts?", ["Yes", "No"])
+mindorflow = st.sidebar.radio("What would you like to generate?", ["Flowchart","Workflow", "Mind map"])
 
 def generate_kroki_diagram(diagram_code, diagram_type):
     kroki_api_url = "https://kroki.io"
@@ -44,9 +44,13 @@ def render_svg(svg):
     html = r'<img src="data:image/svg+xml;base64,%s"/>' % b64
     st.write(html, unsafe_allow_html=True)
 
-def create_flowchart(newj):
+def create_flowchart(newj,wf = 0):#2nd parameter 1 for workflow
     lis = ['A', 'B', 'C', 'D', 'E', "F", "G", "H","I","J", 'K', "L", "M"]
-    flowchart = "flowchart TD" + "\n"
+    flowchart = ""
+    if wf == 0:
+        flowchart = "flowchart TD" + "\n"
+    elif wf == 1:
+        flowchart = "flowchart LR" + "\n"
     for i in range(len(newj['steps'])):
         try:
             flowchart  = flowchart + "    " + lis[i]+'[' +newj['steps'][i]['subheading'] + ']' + " --> " + lis[i+1] +'[' +newj['steps'][i+1]['subheading'] + ']' + '\n'
@@ -54,7 +58,7 @@ def create_flowchart(newj):
             pass
     return flowchart
 
-def create_flowchart_cohere(query):
+def create_flowchart_cohere(query,wf= 0):#2nd parameter 1 for workflow
     template = """{text}
     """
     prompt = PromptTemplate(template=template, input_variables=["text"])
@@ -80,8 +84,11 @@ def create_flowchart_cohere(query):
 
     newparse = k[k.find("{"):(len(k)-k[::-1].find('}'))]
     newj = json.loads(newparse)
-    flows = create_flowchart(newj)
-
+    flows = ''
+    if wf == 1:
+        flows = create_flowchart(newj,1)
+    else:
+        flows = create_flowchart(newj)
     diagram_svg = generate_kroki_diagram(flows, "mermaid")
 
     render_svg(diagram_svg)
@@ -145,7 +152,7 @@ def create_mindmap_cohere(query):
 
     return None
 
-if mindorflow == "No":
+if mindorflow == "Mind map":
     mindmap_data = st.text_area("Enter your text:")
     if st.button("Generate"):
         progress_bar = st.progress(0)
@@ -154,7 +161,7 @@ if mindorflow == "No":
         progress_bar.progress(100)
 
 
-if mindorflow == "Yes":
+if mindorflow == "Flowchart":
     if "messages" not in st.session_state.keys(): # Initialize the chat messages history
         st.session_state.messages = [{"role": "assistant", "content": "Ask me anything!"}]
 
@@ -170,6 +177,26 @@ if mindorflow == "Yes":
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 msg = create_flowchart_cohere(prompt)
+                st.write(msg)
+                message = {"role": "assistant", "content": msg}
+                st.session_state.messages.append(message) # Add response to message history
+
+if mindorflow == "Workflow":
+    if "messages" not in st.session_state.keys(): # Initialize the chat messages history
+        st.session_state.messages = [{"role": "assistant", "content": "Ask me anything!"}]
+
+    if prompt := st.chat_input("Your question"): # Prompt for user input and save to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
+    for message in st.session_state.messages: # Display the prior chat messages
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
+
+    # If last message is not from assistant, generate a new response
+    if st.session_state.messages[-1]["role"] != "assistant":
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking..."):
+                msg = create_flowchart_cohere(prompt,1)
                 st.write(msg)
                 message = {"role": "assistant", "content": msg}
                 st.session_state.messages.append(message) # Add response to message history
