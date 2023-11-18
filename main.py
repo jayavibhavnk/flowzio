@@ -20,7 +20,7 @@ st.subheader(
 st.sidebar.title("Customization Options")
 
 # workflow/ flowchart 
-mindorflow = st.sidebar.radio("Generate Flowcharts?", ["No", "Yes"])
+mindorflow = st.sidebar.radio("Generate Flowcharts?", ["Yes", "No"])
 
 def generate_kroki_diagram(diagram_code, diagram_type):
     kroki_api_url = "https://kroki.io"
